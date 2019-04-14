@@ -2,6 +2,15 @@
 import math
 from operator import itemgetter 
 
+import plotly
+plotly.tools.set_credentials_file(username='moell162', api_key='XWeDQVjHzfvEN01WsE7p')
+
+import plotly.plotly as py
+import plotly.graph_objs as go
+
+# Create random data with numpy
+import numpy as np
+
 def transpose(m):
     return [*zip(*m)]
 
@@ -77,11 +86,100 @@ def knncluster(numOfClusters, input, drugMatrix):
     
     return finalDict 
 
-def sensitivity(counts):
+# Compute sensitivity for each threshold
+def sensitivityCompute(counts, k, drugMatrix):
+    #TP / (TP + FN)
+    
+    #starting at k
+    threshold = k
+    array = []
+    while threshold > 0:
+        tp = 0
+        fn = 0
+        for key, value in counts.items():
+            if(drugMatrix[int(key)] != "NA"):
+                if(int(drugMatrix[int(key)]) == 1):
+                    #True positive
+                    if(int(value) >= threshold):
+                        tp += 1
+                    #False negative
+                    else:
+                        fn += 1
+        sens = tp / (tp + fn)
+        array.append(sens)
+        threshold -= 1
 
-    return 0
+    for i in array:
+        print(i)
 
-def one_specificity(counts):
+    return array
+
+# Compute 1 - specificty for each threshold
+def one_specificity(counts, k, drugMatrix):
+    # 1 - (TN / (TN + FP))
+
+    #starting at k
+    threshold = k
+    array = []
+    while threshold > 0:
+        tn = 0
+        fp = 0
+        for key, value in counts.items():
+            if(drugMatrix[int(key)] != "NA"):
+                if(int(drugMatrix[int(key)]) == 0):
+                    #False positive
+                    if(int(value) >= threshold):
+                        fp += 1
+                    #True negative
+                    else:
+                        tn += 1
+        sens = 1 - (tn / (tn + fp))
+        array.append(sens)
+        threshold -= 1
+
+    for i in array:
+        print(i)
+
+    return array
+
+def linegraph(sensNum, specNum, name):
+    # Create a trace
+    knn = go.Scatter(
+        x = specNum,
+        y = sensNum,
+        name = "knn"
+    )
+    xaxis = [0, .1, .2, .3, .4, .5, .6]
+    yaxis = [0, .1, .2, .3, .4, .5, .6]
+    random = go.Scatter(
+        x = xaxis,
+        y = yaxis,
+        name = "random"
+    )
+
+
+    layout = go.Layout(
+        title=go.layout.Title(
+            text=name
+            
+        ),
+        xaxis=go.layout.XAxis(
+            title=go.layout.xaxis.Title(
+                text='1-Specificity'
+            )
+        ),
+        yaxis=go.layout.YAxis(
+            title=go.layout.yaxis.Title(
+                text='Sensitivity'
+            )
+        )
+    )
+
+    data = [knn, random]
+
+    fig = go.Figure(data=data, layout=layout)
+    py.plot(fig, filename=name)
+
 
 def main():
 
@@ -117,23 +215,34 @@ def main():
     #Everolimus(mTOR): first drug
     first5 = knncluster(5, newMatrix, sensitivity[0])
     #Compute sensitivity and 1-specificity for each threshold
-    sensNum = sensitivity(first5)
-    specNum = one_specificity(first5)
+    sensNum = sensitivityCompute(first5, 5, sensitivity[0])
+    specNum = one_specificity(first5, 5, sensitivity[0])
     #Plot those points as well as y= x
+    linegraph(sensNum, specNum, "Everolimus(mTOR) k=5")
 
     #Disulfiram(ALDH2)
     second5 = knncluster(5, newMatrix, sensitivity[1])
+    sensNum = sensitivityCompute(second5, 5, sensitivity[1])
+    specNum = one_specificity(second5, 5, sensitivity[1])
+    linegraph(sensNum, specNum, "Disulfiram(ALDH2) k=5")
 
     #Methylglyoxol(Pyruvate)
     third5 = knncluster(5, newMatrix, sensitivity[2])
+    sensNum = sensitivityCompute(third5, 5, sensitivity[2])
+    specNum = one_specificity(third5, 5, sensitivity[2])
+    linegraph(sensNum, specNum, "Methylglyoxol(Pyruvate) k=5")
 
     #Mebendazole(Tubulin)
     fourth5 = knncluster(5, newMatrix, sensitivity[3])
+    sensNum = sensitivityCompute(fourth5, 5, sensitivity[3])
+    specNum = one_specificity(fourth5, 5, sensitivity[3])
+    linegraph(sensNum, specNum, "Mebendazole(Tubulin) k=5")
 
     #4-HC(DNA alkylator)
     fifth5 = knncluster(5, newMatrix, sensitivity[4])
-
-
+    sensNum = sensitivityCompute(fifth5, 5, sensitivity[4])
+    specNum = one_specificity(fifth5, 5, sensitivity[4])
+    linegraph(sensNum, specNum, "4-HC(DNA alkylator) k=5")
 
     #QUESTION 3
 
