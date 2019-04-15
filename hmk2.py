@@ -43,7 +43,7 @@ def pearson(input1, input2):
     
 #   You should create a classifier for each drug that takes a cell line expression 
 # profile as input and produces a score that predicts whether it is sensitive or resistant to the given drug.
-def knncluster(numOfClusters, input, drugMatrix):
+def knncluster(numOfClus, input, drugMatrix):
     #input should be newMatrix, which is the one that was transposed 
 
     
@@ -65,7 +65,7 @@ def knncluster(numOfClusters, input, drugMatrix):
         #Sort and get top five similar cell lines
         #Compute number of cell lines that predicted sensitivity divided by k and i (cell line num) and add to dictionary
         for key, value in sorted(pearsonDict.items(), key = itemgetter(1), reverse = True):
-            if(index < 5 and drugMatrix[int(key)] != "NA"):
+            if(index < numOfClus and drugMatrix[int(key)] != "NA"):
                 
                 if(int(drugMatrix[int(key)]) == 1):
                     count += 1
@@ -142,15 +142,15 @@ def one_specificity(counts, k, drugMatrix):
 
     return array
 
-def linegraph(sensNum, specNum, name):
+def linegraphQ2(sensNum, specNum, name):
     # Create a trace
     knn = go.Scatter(
         x = specNum,
         y = sensNum,
         name = "knn"
     )
-    xaxis = [0, .1, .2, .3, .4, .5, .6]
-    yaxis = [0, .1, .2, .3, .4, .5, .6]
+    xaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
+    yaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
     random = go.Scatter(
         x = xaxis,
         y = yaxis,
@@ -176,6 +176,54 @@ def linegraph(sensNum, specNum, name):
     )
 
     data = [knn, random]
+
+    fig = go.Figure(data=data, layout=layout)
+    py.plot(fig, filename=name)
+
+def linegraphQ3(sensNum3, specNum3, sensNum5, specNum5, sensNum7, specNum7, name):
+    # Create a trace
+    knn3 = go.Scatter(
+        x = specNum3,
+        y = sensNum3,
+        name = "knn3"
+    )
+    knn5 = go.Scatter(
+        x = specNum5,
+        y = sensNum5,
+        name = "knn5"
+    )
+    knn7 = go.Scatter(
+        x = specNum7,
+        y = sensNum7,
+        name = "knn7"
+    )
+    xaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
+    yaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
+    random = go.Scatter(
+        x = xaxis,
+        y = yaxis,
+        name = "random"
+    )
+
+
+    layout = go.Layout(
+        title=go.layout.Title(
+            text=name
+            
+        ),
+        xaxis=go.layout.XAxis(
+            title=go.layout.xaxis.Title(
+                text='1-Specificity'
+            )
+        ),
+        yaxis=go.layout.YAxis(
+            title=go.layout.yaxis.Title(
+                text='Sensitivity'
+            )
+        )
+    )
+
+    data = [knn3, knn5, knn7, random]
 
     fig = go.Figure(data=data, layout=layout)
     py.plot(fig, filename=name)
@@ -218,33 +266,54 @@ def main():
     sensNum = sensitivityCompute(first5, 5, sensitivity[0])
     specNum = one_specificity(first5, 5, sensitivity[0])
     #Plot those points as well as y= x
-    linegraph(sensNum, specNum, "Everolimus(mTOR) k=5")
+    linegraphQ2(sensNum, specNum, "Everolimus(mTOR) k=5")
 
     #Disulfiram(ALDH2)
     second5 = knncluster(5, newMatrix, sensitivity[1])
     sensNum = sensitivityCompute(second5, 5, sensitivity[1])
     specNum = one_specificity(second5, 5, sensitivity[1])
-    linegraph(sensNum, specNum, "Disulfiram(ALDH2) k=5")
+    linegraphQ2(sensNum, specNum, "Disulfiram(ALDH2) k=5")
 
     #Methylglyoxol(Pyruvate)
     third5 = knncluster(5, newMatrix, sensitivity[2])
     sensNum = sensitivityCompute(third5, 5, sensitivity[2])
     specNum = one_specificity(third5, 5, sensitivity[2])
-    linegraph(sensNum, specNum, "Methylglyoxol(Pyruvate) k=5")
+    linegraphQ2(sensNum, specNum, "Methylglyoxol(Pyruvate) k=5")
 
     #Mebendazole(Tubulin)
     fourth5 = knncluster(5, newMatrix, sensitivity[3])
     sensNum = sensitivityCompute(fourth5, 5, sensitivity[3])
     specNum = one_specificity(fourth5, 5, sensitivity[3])
-    linegraph(sensNum, specNum, "Mebendazole(Tubulin) k=5")
+    linegraphQ2(sensNum, specNum, "Mebendazole(Tubulin) k=5")
 
     #4-HC(DNA alkylator)
     fifth5 = knncluster(5, newMatrix, sensitivity[4])
     sensNum = sensitivityCompute(fifth5, 5, sensitivity[4])
     specNum = one_specificity(fifth5, 5, sensitivity[4])
-    linegraph(sensNum, specNum, "4-HC(DNA alkylator) k=5")
+    linegraphQ2(sensNum, specNum, "4-HC(DNA alkylator) k=5")
 
     #QUESTION 3
+    array = ["Everolimus(mTOR) k=3,5,7", "Disulfiram(ALDH2) k=3,5,7", "Methylglyoxol(Pyruvate) k=3,5,7",
+     "Mebendazole(Tubulin) k=3,5,7", "4-HC(DNA alkylator) k=3,5,7"]
+
+    i = 0
+    for drug in array:
+        #k = 3
+        counts3 = knncluster(3, newMatrix, sensitivity[i])
+        sensNum3 = sensitivityCompute(counts3, 3, sensitivity[i])
+        specNum3 = one_specificity(counts3, 3, sensitivity[i])
+        #k = 5
+        counts5 = knncluster(5, newMatrix, sensitivity[i])
+        sensNum5 = sensitivityCompute(counts5, 5, sensitivity[i])
+        specNum5 = one_specificity(counts5, 5, sensitivity[i])
+        #k = 7
+        counts7 = knncluster(7, newMatrix, sensitivity[i])
+        sensNum7 = sensitivityCompute(counts7, 7, sensitivity[i])
+        specNum7 = one_specificity(counts7, 7, sensitivity[i])
+
+        linegraphQ3(sensNum3, specNum3, sensNum5, specNum5, sensNum7, specNum7, drug)
+        i += 1
+
 
 if __name__ == '__main__':
     main()
