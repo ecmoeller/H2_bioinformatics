@@ -75,16 +75,49 @@ def knncluster(numOfClus, input, drugMatrix):
             index += 1
 
         finalDict[str(i)] = count
-        print("This is count", count)
         i += 1
+    
+    
+    return finalDict 
 
-    ##Sort dictionary by predicted sensitivity nums
-    print("Sorted final dictionary counts") 
-    for key, value in sorted(finalDict.items(), key = itemgetter(1), reverse = True):
-        print(key, value)
+def weightedScore(numOfClus, input, drugMatrix):
+    #input should be newMatrix, which is the one that was transposed 
+
+    
+    ##Computes the counts of sensitivity for top k most similiar cell lines
+    finalDict = {}
+    i = 1
+    while i < len(input):
+        #Compute pearson coefficients for all cell lines except for the last
+        pearsonDict = {} # should be a dictionary associated with j
+        j = 1
+        
+        while j < len(input):
+            if(i != j):
+                pearsonDict[str(j)] = pearson(input[j], input[i])
+            j += 1
+         
+        index = 0
+        count = 0
+        #Sort and get top five similar cell lines
+        #Compute number of cell lines that predicted sensitivity divided by k and i (cell line num) and add to dictionary
+        for key, value in sorted(pearsonDict.items(), key = itemgetter(1), reverse = True):
+            if(index < numOfClus and drugMatrix[int(key)] != "NA"):
+                
+                if(int(drugMatrix[int(key)]) == 1):
+                    count = count + value
+                elif(int(drugMatrix[int(key)] == 0)):
+                    count = count - value
+            else:
+                break
+            index += 1
+
+        finalDict[str(i)] = count
+        i += 1
 
     
     return finalDict 
+
 
 # Compute sensitivity for each threshold
 def sensitivityCompute(counts, k, drugMatrix):
@@ -93,7 +126,7 @@ def sensitivityCompute(counts, k, drugMatrix):
     #starting at k
     threshold = k
     array = []
-    while threshold > 0:
+    while threshold >= 0:
         tp = 0
         fn = 0
         for key, value in counts.items():
@@ -107,6 +140,8 @@ def sensitivityCompute(counts, k, drugMatrix):
                         fn += 1
         sens = tp / (tp + fn)
         array.append(sens)
+        print("At threshold ", threshold)
+        print("True positives ", tp)
         threshold -= 1
 
     for i in array:
@@ -121,7 +156,7 @@ def one_specificity(counts, k, drugMatrix):
     #starting at k
     threshold = k
     array = []
-    while threshold > 0:
+    while threshold >= 0:
         tn = 0
         fp = 0
         for key, value in counts.items():
@@ -135,6 +170,8 @@ def one_specificity(counts, k, drugMatrix):
                         tn += 1
         sens = 1 - (tn / (tn + fp))
         array.append(sens)
+        print("At threshold ", threshold)
+        print("false positives ", fp)
         threshold -= 1
 
     for i in array:
@@ -144,13 +181,16 @@ def one_specificity(counts, k, drugMatrix):
 
 def linegraphQ2(sensNum, specNum, name):
     # Create a trace
+
+    print("Area under curve ", np.trapz(sensNum, specNum))
+
     knn = go.Scatter(
         x = specNum,
         y = sensNum,
         name = "knn"
     )
-    xaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
-    yaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
+    xaxis = [0, .2, .4, .6, .8, 1]
+    yaxis = [0, .2, .4, .6, .8, 1]
     random = go.Scatter(
         x = xaxis,
         y = yaxis,
@@ -181,6 +221,9 @@ def linegraphQ2(sensNum, specNum, name):
     py.plot(fig, filename=name)
 
 def linegraphQ3(sensNum3, specNum3, sensNum5, specNum5, sensNum7, specNum7, name):
+    print("Area under curve k=3", np.trapz(sensNum3, specNum3))
+    print("Area under curve k=5", np.trapz(sensNum5, specNum5))
+    print("Area under curve k=7", np.trapz(sensNum7, specNum7))
     # Create a trace
     knn3 = go.Scatter(
         x = specNum3,
@@ -197,8 +240,8 @@ def linegraphQ3(sensNum3, specNum3, sensNum5, specNum5, sensNum7, specNum7, name
         y = sensNum7,
         name = "knn7"
     )
-    xaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
-    yaxis = [0, .1, .2, .3, .4, .5, .6, .7, .8]
+    xaxis = [0, .2, .4, .6, .8, 1]
+    yaxis = [0, .2, .4, .6, .8, 1]
     random = go.Scatter(
         x = xaxis,
         y = yaxis,
@@ -292,7 +335,7 @@ def main():
     specNum = one_specificity(fifth5, 5, sensitivity[4])
     linegraphQ2(sensNum, specNum, "4-HC(DNA alkylator) k=5")
 
-    #QUESTION 3
+    #QUESTION 3a
     array = ["Everolimus(mTOR) k=3,5,7", "Disulfiram(ALDH2) k=3,5,7", "Methylglyoxol(Pyruvate) k=3,5,7",
      "Mebendazole(Tubulin) k=3,5,7", "4-HC(DNA alkylator) k=3,5,7"]
 
@@ -312,8 +355,22 @@ def main():
         specNum7 = one_specificity(counts7, 7, sensitivity[i])
 
         linegraphQ3(sensNum3, specNum3, sensNum5, specNum5, sensNum7, specNum7, drug)
-        i += 1
+        i += 1 
 
+    #QUESTION 3b
+    drugs = ["Everolimus(mTOR) k=5 weighted scoring", "Disulfiram(ALDH2) k=5 weighted scoring", "Methylglyoxol(Pyruvate) k=5 weighted scoring",
+     "Mebendazole(Tubulin) k=5 weighted scoring", "4-HC(DNA alkylator) k=5 weighted scoring"]
+
+    i = 0
+    for drug in drugs:
+        
+        #k = 5
+        counts5 = weightedScore(5, newMatrix, sensitivity[i])
+        sensNum5 = sensitivityCompute(counts5, 5, sensitivity[i])
+        specNum5 = one_specificity(counts5, 5, sensitivity[i])
+        
+        linegraphQ2(sensNum5, specNum5, drug)
+        i += 1 
 
 if __name__ == '__main__':
     main()
